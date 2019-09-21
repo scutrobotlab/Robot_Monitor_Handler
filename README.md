@@ -15,6 +15,10 @@ Add the following code in file *stm32f4xx_it.c* and *freertos.c*.
 Call `receiveRobotMonitorRxBuf()` in function `USARTx_IRQHandler`.  
 Add the following code between "USER CODE BEGIN RTOS_THREADS" and "USER CODE END RTOS_THREADS" in file *freertos.c*.
 ```C
-osThreadDef(robotMonitorTask, tskRobotMonitor, osPriorityNormal, 0, 1024);
-robotMonitorHandle = osThreadCreate(osThread(robotMonitorTask), NULL);
+const osThreadAttr_t robotMonitor_attributes = {
+  .name = "robotMonitor",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 1024
+};
+robotMonitorHandle = osThreadNew(tskRobotMonitor, NULL, &robotMonitor_attributes);
 ```
