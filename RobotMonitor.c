@@ -133,6 +133,9 @@ typedef struct
   uint32_t addr;
 } listAddr_t;
 listAddr_t listAddr[MAX_ADDR_NUM];
+/* definition of the data pack and length to send */
+static uint8_t txDataBuf[MAX_ADDR_NUM * 16] = {0};
+static uint16_t txDataLen = 0;
 
 /**
  * @brief  Receives robot monitor data in idle interrupt mode.
@@ -226,6 +229,8 @@ void readFlash(void)
 {
   /* Clear the data buffer to be sent */
   memset((uint8_t *) &robotMonitorTxUnion.robotMonitorTxBuf, 0, sizeof(robotMonitorTxUnion.robotMonitorTxBuf));
+  memset((uint8_t *) &txDataBuf, 0, sizeof(txDataBuf));
+  txDataLen = 0;
 
   /* Prepare the data to send */
   robotMonitorTxUnion.robotMonitorTxData.board = robotMonitorRxUnion.robotMonitorRxData.board;
@@ -246,12 +251,12 @@ void readFlash(void)
         *(robotMonitorTxUnion.robotMonitorTxBuf + 7 + dataNum) = *(__IO uint8_t*) addr++;
       }
       robotMonitorTxUnion.robotMonitorTxData.dataNum = dataNum;
-
-      /* Send return data */
-      HAL_UART_Transmit_DMA(&RM_UART, robotMonitorTxUnion.robotMonitorTxBuf, 8 + dataNum);
-
+      memcpy((uint8_t *)(txDataBuf + txDataLen), (uint8_t *)robotMonitorTxUnion.robotMonitorTxBuf, 16);
+      txDataLen += 16;
     }
   }
+  /* Send return data */
+  HAL_UART_Transmit_DMA(&RM_UART, (uint8_t *)txDataBuf, txDataLen);
 }
 
 /**
