@@ -311,11 +311,17 @@ void writeFlash(void)
  */
 void tskRobotMonitor(void *argument)
 {
+  uint32_t tick;
+  tick = osKernelGetTickCount();
   HAL_UART_Receive_DMA(&RM_UART, robotMonitorRxUnion.robotMonitorRxBuf, sizeof(robotMonitorRxUnion.robotMonitorRxBuf));
   __HAL_UART_ENABLE_IT(&RM_UART, UART_IT_IDLE);
   /* Infinite loop */
   for (;;)
   {
+    /* Delay 1000 ticks periodically */
+    tick += 10U;
+    osDelayUntil(tick);
+
     readFlash();
     /* Check if data is received */
     if (isGetRobotMonitor)
@@ -360,6 +366,5 @@ void tskRobotMonitor(void *argument)
       }
       isGetRobotMonitor = 0;
     }
-    osDelay(100);
   }
 }
