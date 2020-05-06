@@ -55,12 +55,14 @@ enum RM_BOARD
  */
 enum RM_ACT
 {
-  RM_ACT_READ = 0x01,
+  RM_ACT_SUBSCRIBE = 0x01,
+  RM_ACT_SUBSCRIBERETURN,
+  RM_ACT_UNSUBSCRIBE,
+  RM_ACT_UNSUBSCRIBERETURN,
+  RM_ACT_READ,
   RM_ACT_READRETURN,
   RM_ACT_WRITE,
-  RM_ACT_WRITERETURN,
-  RM_ACT_UNREAD,
-  RM_ACT_UNREADRETURN
+  RM_ACT_WRITERETURN
 };
 
 /**
@@ -234,7 +236,7 @@ void readFlash(void)
 
   /* Prepare the data to send */
   robotMonitorTxUnion.robotMonitorTxData.board = robotMonitorRxUnion.robotMonitorRxData.board;
-  robotMonitorTxUnion.robotMonitorTxData.act = RM_ACT_READRETURN;
+  robotMonitorTxUnion.robotMonitorTxData.act = RM_ACT_SUBSCRIBERETURN;
   robotMonitorTxUnion.robotMonitorTxData.carriageReturn = '\n';
 
   uint16_t dataNum;
@@ -332,7 +334,7 @@ void tskRobotMonitor(void *argument)
       {
 
         /* Check if it is a valid action information and execute */
-        if (robotMonitorRxUnion.robotMonitorRxData.act == RM_ACT_READ)
+        if (robotMonitorRxUnion.robotMonitorRxData.act == RM_ACT_SUBSCRIBE)
         {
           if (addrRegister() == -1)
           {
@@ -343,7 +345,7 @@ void tskRobotMonitor(void *argument)
         {
           writeFlash();
         }
-        else if (robotMonitorRxUnion.robotMonitorRxData.act == RM_ACT_UNREAD)
+        else if (robotMonitorRxUnion.robotMonitorRxData.act == RM_ACT_UNSUBSCRIBE)
         {
           if (addrUnregister() == -1)
           {
