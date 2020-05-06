@@ -79,7 +79,7 @@ enum RM_ERROR
 };
 
 /** 
- * @brief robot monitor data structure definition
+ * @brief robot monitor data to receive structure definition
  */
 typedef struct
 {
@@ -101,14 +101,42 @@ typedef struct
   uint8_t carriageReturn :8; /*!< The carriage return.
    This parameter must be '\n' */
 
-}__attribute__((packed)) robotMonitorData_t;
+}__attribute__((packed)) robotMonitorRxData_t;
+
+/**
+ * @brief robot monitor data to transmit structure definition
+ */
+typedef struct
+{
+  uint8_t board :8; /*!< The ID of the board to be operated.
+   This parameter can be any value of @ref RM_BOARD */
+
+  uint8_t act :8; /*!< The action to be performed or the error information to be sent.
+   This parameter can be any value of @ref RM_ACT or @ref RM_ERROR */
+
+  uint8_t dataNum :8; /*!< Size amount of data to be operated.
+   This parameter must be a number between Min_Data = 0 and Max_Data = 8. */
+
+  uint32_t addr :32; /*!< The address of MCU to be operated.
+   This parameter must be a number between Min_Data = 0x20000000 and Max_Data = 0x80000000. */
+
+  uint64_t dataBuf :64; /*!< The data read or to be written.
+   This parameter must be a variable of type uint64_t */
+
+  uint32_t tick :32; /*!< The tick count.
+   This parameter must be a variable of type uint32_t */
+
+  uint8_t carriageReturn :8; /*!< The carriage return.
+   This parameter must be '\n' */
+
+}__attribute__((packed)) robotMonitorTxData_t;
 
 /** 
  * @brief robot monitor data to receive union definition
  */
 typedef union
 {
-  robotMonitorData_t robotMonitorRxData;
+  robotMonitorRxData_t robotMonitorRxData;
   uint8_t robotMonitorRxBuf[16];
 } robotMonitorRxUnion_t;
 robotMonitorRxUnion_t robotMonitorRxUnion;
@@ -118,8 +146,8 @@ robotMonitorRxUnion_t robotMonitorRxUnion;
  */
 typedef union
 {
-  robotMonitorData_t robotMonitorTxData;
-  uint8_t robotMonitorTxBuf[16];
+  robotMonitorTxData_t robotMonitorTxData;
+  uint8_t robotMonitorTxBuf[20];
 } robotMonitorTxUnion_t;
 robotMonitorTxUnion_t robotMonitorTxUnion;
 
@@ -136,7 +164,7 @@ typedef struct
 } listAddr_t;
 listAddr_t listAddr[MAX_ADDR_NUM];
 /* definition of the data pack and length to send */
-static uint8_t txDataBuf[MAX_ADDR_NUM * 16] = {0};
+static uint8_t txDataBuf[MAX_ADDR_NUM * 20] = {0};
 static uint16_t txDataLen = 0;
 
 /**
@@ -223,11 +251,11 @@ void returnError(uint8_t err)
 }
 
 /**
- * @brief  Reads the variable in flash memory of the given address.
+ * @brief  Subscribes the variable in flash memory of the given address.
  * @param  None
  * @retval None
  */
-void readFlash(void)
+void subscribeFlash(void)
 {
   /* Clear the data buffer to be sent */
   memset((uint8_t *) &robotMonitorTxUnion.robotMonitorTxBuf, 0, sizeof(robotMonitorTxUnion.robotMonitorTxBuf));
@@ -253,8 +281,9 @@ void readFlash(void)
         *(robotMonitorTxUnion.robotMonitorTxBuf + 7 + dataNum) = *(__IO uint8_t*) addr++;
       }
       robotMonitorTxUnion.robotMonitorTxData.dataNum = dataNum;
-      memcpy((uint8_t *)(txDataBuf + txDataLen), (uint8_t *)robotMonitorTxUnion.robotMonitorTxBuf, 16);
-      txDataLen += 16;
+      robotMonitorTxUnion.robotMonitorTxData.tick = osKernelGetTickCount();
+      memcpy((uint8_t *)(txDataBuf + txDataLen), (uint8_t *)robotMonitorTxUnion.robotMonitorTxBuf, 20);
+      txDataLen += 20;
     }
   }
   /* Send return data */
@@ -324,7 +353,7 @@ void tskRobotMonitor(void *argument)
     tick += 10U;
     osDelayUntil(tick);
 
-    readFlash();
+    subscribeFlash();
     /* Check if data is received */
     if (isGetRobotMonitor)
     {
